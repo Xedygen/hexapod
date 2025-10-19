@@ -1,0 +1,8 @@
+# Force text files to use LF in the repo
+* text=auto
+
+# For STM32 files
+*.c text
+*.h text
+*.s text
+*.ld text
