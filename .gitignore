@@ -1,3 +1,21 @@
+# STM32CubeIDE + Embedded C/C++ Git Ignore
+# STM32CubeIDE build directories
+Debug/
+Release/
+build/
+
+# CubeIDE generated project files
+.settings/language.settings.xml
+.mxproject
+.metadata/
+.loadpath
+
+# STM32CubeIDE specific temporary files
+*.lst
+*.bak
+*.tmp
+
+# General C / C++ ignore rules
 # Prerequisites
 *.d
 
@@ -51,5 +69,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# debug information files
+# Debug information files
 *.dwo
+
+# OS / Editor
+.DS_Store
+Thumbs.db
