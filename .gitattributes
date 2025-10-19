@@ -6,3 +6,9 @@
 *.h text
 *.s text
 *.ld text
+
+# KiCad project files
+*.kicad_pro text eol=lf
+*.sch text eol=lf
+*.kicad_pcb text eol=lf
+*.kicad_mod text eol=lf

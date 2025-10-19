@@ -75,3 +75,20 @@ dkms.conf
 # OS / Editor
 .DS_Store
 Thumbs.db
+
+# KiCad backup/cache files
+hexapod-backups/
+fp-info-cache/
+
+# KiCad project temporary files
+*.kicad_prl
+*.kicad_pcb-bak
+*.kicad_pcb-bak~
+*.kicad_sch-bak
+*.kicad_sch-bak~
+*.kicad_wks-bak
+*.kicad_wks-bak~
+
+# Editor swap/temp files
+*~
+*.swp
