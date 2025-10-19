@@ -78,7 +78,7 @@ Thumbs.db
 
 # KiCad backup/cache files
 hexapod-backups/
-fp-info-cache/
+fp-info-cache
 
 # KiCad project temporary files
 *.kicad_prl
