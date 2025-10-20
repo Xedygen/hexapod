@@ -1,14 +1,17 @@
-# Force text files to use LF in the repo
+# Force text files to use LF in the repository
 * text=auto
 
-# For STM32 files
-*.c text
-*.h text
-*.s text
-*.ld text
+# C source files
+*.c     text eol=lf
+*.h     text eol=lf
+*.s     text eol=lf
+*.ld    text eol=lf
+
+# STM32Cube files
+*.ioc   text eol=lf
 
 # KiCad project files
-*.kicad_pro text eol=lf
-*.sch text eol=lf
-*.kicad_pcb text eol=lf
-*.kicad_mod text eol=lf
+*.kicad_pro  text eol=lf
+*.sch        text eol=lf
+*.kicad_pcb  text eol=lf
+*.kicad_mod  text eol=lf
