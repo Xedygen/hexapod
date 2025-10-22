@@ -75,8 +75,8 @@ HAL_StatusTypeDef MPU6050_ReadGyro(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data
 HAL_StatusTypeDef MPU6050_ReadAccel(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data);
 HAL_StatusTypeDef MPU6050_ReadTemp(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data);
 HAL_StatusTypeDef MPU6050_ReadAll(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data);
-HAL_StatusTypeDef MPU6050_EnableDMP(I2C_HandleTypeDef *hi2c);
-HAL_StatusTypeDef MPU6050_ReadDMP(I2C_HandleTypeDef *hi2c, float *pitch, float *roll, float *yaw);
+//HAL_StatusTypeDef MPU6050_EnableDMP(I2C_HandleTypeDef *hi2c);
+//HAL_StatusTypeDef MPU6050_ReadDMP(I2C_HandleTypeDef *hi2c, float *pitch, float *roll, float *yaw);
 HAL_StatusTypeDef MPU6050_Sleep(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_Wake(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_SetClockSource(I2C_HandleTypeDef *hi2c, uint8_t source);

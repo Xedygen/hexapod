@@ -132,13 +132,8 @@ HAL_StatusTypeDef MPU6050_ReadAll(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data)
     return HAL_OK;
 }
 
-HAL_StatusTypeDef MPU6050_EnableDMP(I2C_HandleTypeDef *hi2c) {
-
-}
-
-HAL_StatusTypeDef MPU6050_ReadDMP(I2C_HandleTypeDef *hi2c, float *pitch, float *roll, float *yaw) {
-
-}
+//HAL_StatusTypeDef MPU6050_EnableDMP(I2C_HandleTypeDef *hi2c) {}
+//HAL_StatusTypeDef MPU6050_ReadDMP(I2C_HandleTypeDef *hi2c, float *pitch, float *roll, float *yaw) {}
 
 HAL_StatusTypeDef MPU6050_Sleep(I2C_HandleTypeDef *hi2c) {
     uint8_t flag = 0;
