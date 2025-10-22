@@ -7,6 +7,7 @@
 
 #define MPU6050_ADDR 0x68 << 1
 
+#define MPU6050_CONFIG_REG          0x1A
 #define MPU6050_ACCEL_CONFIG_REG    0x1C
 #define MPU6050_GYRO_CONFIG_REG     0x1B
 #define MPU6050_ACCEL_XOUT_H_REG    0x3B
@@ -32,6 +33,7 @@
 
 #define TIMEOUT 100
 #define SAMPLES 500 //num of samples for offset calc
+#define RAW_1G_EQUIVALENT 16384.0f
 
 typedef enum {
     G2  = 16384,
@@ -80,7 +82,7 @@ HAL_StatusTypeDef MPU6050_Wake(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_SetClockSource(I2C_HandleTypeDef *hi2c, uint8_t source);
 HAL_StatusTypeDef MPU6050_SetAccelOffset(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_SetGyroOffset(I2C_HandleTypeDef *hi2c);
-HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_Data_t *data, uint16_t samples);
+HAL_StatusTypeDef MPU6050_Calibrate(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data, uint16_t samples);
 HAL_StatusTypeDef MPU6050_EnableFIFO(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_DisableFIFO(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_ReadFIFO(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data);

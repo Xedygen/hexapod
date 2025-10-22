@@ -17,11 +17,7 @@ HAL_StatusTypeDef MPU6050_Init(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_Accel_Config(I2C_HandleTypeDef *hi2c, uint8_t val) {
@@ -162,11 +158,7 @@ HAL_StatusTypeDef MPU6050_Sleep(I2C_HandleTypeDef *hi2c) {
 
     pwr |= 0x40;
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_Wake(I2C_HandleTypeDef *hi2c) {
@@ -187,11 +179,7 @@ HAL_StatusTypeDef MPU6050_Wake(I2C_HandleTypeDef *hi2c) {
 
     pwr &= ~0x40;
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT);
 }
 
 //As a source value only 0, 1, 2, 3, 4, 5, 7 should be used other values will break the sensor.
@@ -213,61 +201,62 @@ HAL_StatusTypeDef MPU6050_SetClockSource(I2C_HandleTypeDef *hi2c, uint8_t source
 
     pwr = (pwr & ~0x07) | (source & 0x07);
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_PWR_MGMT_1_REG, 1, &pwr, 1, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_SetAccelOffset(I2C_HandleTypeDef *hi2c) {
     uint8_t buffer[6];
-    int32_t sensor_offset_x = 0, sensor_offset_y = 0, sensor_offset_z = 0;
+    int32_t sum_x = 0, sum_y = 0, sum_z = 0;
+    
     for (int i = 0; i < SAMPLES; i++) {
         if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_ACCEL_XOUT_H_REG, 1, buffer, 6, TIMEOUT) != HAL_OK) {
             return HAL_ERROR;
         }
-        sensor_offset_x += (int16_t)((buffer[0] << 8) | buffer[1]);
-        sensor_offset_y += (int16_t)((buffer[2] << 8) | buffer[3]);
-        sensor_offset_z += (int16_t)((buffer[4] << 8) | buffer[5]);
+        sum_x += (int16_t)((buffer[0] << 8) | buffer[1]);
+        sum_y += (int16_t)((buffer[2] << 8) | buffer[3]);
+        sum_z += (int16_t)((buffer[4] << 8) | buffer[5]);
         HAL_Delay(2);
     }
 
-    sensor_offset_x /= (float)SAMPLES;
-    sensor_offset_y /= (float)SAMPLES;
-    sensor_offset_z /= (float)SAMPLES;
+    float avg_x = (float)sum_x / SAMPLES;
+    float avg_y = (float)sum_y / SAMPLES;
+    float avg_z = (float)sum_z / SAMPLES;
 
-    float magnitude = sqrtf(sensor_offset_x * sensor_offset_x +
-                            sensor_offset_y * sensor_offset_y +
-                            sensor_offset_z * sensor_offset_z);
-
+    float magnitude = sqrtf(avg_x * avg_x + avg_y * avg_y + avg_z * avg_z);
     if (magnitude < 8000.0f || magnitude > 20000.0f) {
         return HAL_ERROR;
     }
 
-    float expected_x = (sensor_offset_x / magnitude) * accelSens;
-    float expected_y = (sensor_offset_y / magnitude) * accelSens;
-    float expected_z = (sensor_offset_z / magnitude) * accelSens;
-
-    int16_t x_offset = expected_x - (int16_t)sensor_offset_x;
-    int16_t y_offset = expected_y - (int16_t)sensor_offset_y;
-    int16_t z_offset = expected_z - (int16_t)sensor_offset_z;
-
-    uint8_t data[6];
-    data[0] = (x_offset >> 8) & 0xFF;
-    data[1] = x_offset & 0xFF;
-    data[2] = (y_offset >> 8) & 0xFF;
-    data[3] = y_offset & 0xFF;
-    data[4] = (z_offset >> 8) & 0xFF;
-    data[5] = z_offset & 0xFF;
-
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_ACCEL_XOFFS_H_REG, 1, &data[0], 2, TIMEOUT) != HAL_OK ||
-        HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_ACCEL_YOFFS_H_REG, 1, &data[2], 2, TIMEOUT) != HAL_OK ||
-        HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_ACCEL_ZOFFS_H_REG, 1, &data[4], 2, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
+    float offset_x, offset_y, offset_z;
+    if (fabsf(avg_x) > fabsf(avg_y) && fabsf(avg_x) > fabsf(avg_z)) {
+        float expected_g = (avg_x > 0) ? RAW_1G_EQUIVALENT : -RAW_1G_EQUIVALENT;
+        offset_x = avg_x - expected_g; 
+        offset_y = avg_y - 0.0f;       
+        offset_z = avg_z - 0.0f;
+    } else if (fabsf(avg_y) > fabsf(avg_z)) {
+        float expected_g = (avg_y > 0) ? RAW_1G_EQUIVALENT : -RAW_1G_EQUIVALENT;
+        offset_x = avg_x - 0.0f;
+        offset_y = avg_y - expected_g;
+        offset_z = avg_z - 0.0f;
+    } else {
+        float expected_g = (avg_z > 0) ? RAW_1G_EQUIVALENT : -RAW_1G_EQUIVALENT;
+        offset_x = avg_x - 0.0f;
+        offset_y = avg_y - 0.0f;
+        offset_z = avg_z - expected_g;
     }
 
-    return HAL_OK;
+    int16_t x_offset_reg = (int16_t)roundf(offset_x / 4.0f);
+    int16_t y_offset_reg = (int16_t)roundf(offset_y / 4.0f);
+    int16_t z_offset_reg = (int16_t)roundf(offset_z / 4.0f);
+    uint8_t data[6];
+    data[0] = (x_offset_reg >> 8) & 0xFF;
+    data[1] = (x_offset_reg & 0xFC); 
+    data[2] = (y_offset_reg >> 8) & 0xFF;
+    data[3] = (y_offset_reg & 0xFC);
+    data[4] = (z_offset_reg >> 8) & 0xFF;
+    data[5] = (z_offset_reg & 0xFC);
+
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_ACCEL_XOFFS_H_REG, 1, data, 6, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_SetGyroOffset(I2C_HandleTypeDef *hi2c) {
@@ -283,13 +272,13 @@ HAL_StatusTypeDef MPU6050_SetGyroOffset(I2C_HandleTypeDef *hi2c) {
         HAL_Delay(2);
     }
 
-    sensor_offset_x /= (float)SAMPLES;
-    sensor_offset_y /= (float)SAMPLES;
-    sensor_offset_z /= (float)SAMPLES;
+     float avg_x= (float)sensor_offset_x / SAMPLES;
+     float avg_y= (float)sensor_offset_y / SAMPLES;
+     float avg_z= (float)sensor_offset_z / SAMPLES;
 
-    int16_t x_offset = (-1 * (int16_t)sensor_offset_x);
-    int16_t y_offset = (-1 * (int16_t)sensor_offset_y);
-    int16_t z_offset = (-1 * (int16_t)sensor_offset_z);
+    int16_t x_offset = -1 * (int16_t)roundf(avg_x);
+    int16_t y_offset = -1 * (int16_t)roundf(avg_y);
+    int16_t z_offset = -1 * (int16_t)roundf(avg_z);
 
     uint8_t data[6];
     data[0] = (x_offset >> 8) & 0xFF;
@@ -299,17 +288,42 @@ HAL_StatusTypeDef MPU6050_SetGyroOffset(I2C_HandleTypeDef *hi2c) {
     data[4] = (z_offset >> 8) & 0xFF;
     data[5] = z_offset & 0xFF;
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_XOFFS_H_REG, 1, &data[0], 2, TIMEOUT) != HAL_OK ||
-        HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_YOFFS_H_REG, 1, &data[2], 2, TIMEOUT) != HAL_OK ||
-        HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_ZOFFS_H_REG, 1, &data[4], 2, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_XOFFS_H_REG, 1, &data[0], 2, TIMEOUT) ||
+           HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_YOFFS_H_REG, 1, &data[2], 2, TIMEOUT) ||
+           HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_GYRO_ZOFFS_H_REG, 1, &data[4], 2, TIMEOUT);
 }
 
-HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_Data_t *data, uint16_t samples) {
+HAL_StatusTypeDef MPU6050_Calibrate(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data, uint16_t samples) {
+    uint8_t accel;
+    uint8_t gyro;
 
+    switch (accelSens) {
+        case G2: accel = 0;break; 
+        case G4: accel = 1;break;
+        case G8: accel = 2;break;  
+        case G16: accel = 3;break;
+        default: accel = 0;break;
+    }
+
+    switch (gyroSens) {
+        case G250: gyro = 0;break;   
+        case G500: gyro = 1;break;
+        case G1000: gyro = 2;break;   
+        case G2000: gyro = 3;break;
+        default: gyro = 0;break;
+    }
+
+    if (MPU6050_SetDLPF(hi2c, 0) != HAL_OK) return HAL_ERROR;
+    if (MPU6050_Accel_Config(hi2c, 0) != HAL_OK) return HAL_ERROR;
+    if (MPU6050_Gyro_Config(hi2c, 0) != HAL_OK) return HAL_ERROR;
+    HAL_Delay(100);
+
+    if (MPU6050_SetAccelOffset(hi2c) != HAL_OK) return HAL_ERROR;
+    if (MPU6050_SetGyroOffset(hi2c) != HAL_OK) return HAL_ERROR;
+    if (MPU6050_Accel_Config(hi2c, accel) != HAL_OK) return HAL_ERROR;
+    if (MPU6050_Gyro_Config(hi2c, gyro) != HAL_OK) return HAL_ERROR;
+
+    return HAL_OK;
 }
 
 HAL_StatusTypeDef MPU6050_EnableFIFO(I2C_HandleTypeDef *hi2c) {
@@ -329,11 +343,8 @@ HAL_StatusTypeDef MPU6050_EnableFIFO(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
     val |= 0x40;
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
 
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_DisableFIFO(I2C_HandleTypeDef *hi2c) {
@@ -345,10 +356,8 @@ HAL_StatusTypeDef MPU6050_DisableFIFO(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
     val &= ~0x40;
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-    return HAL_OK;
+
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT);
 }
 
 HAL_StatusTypeDef MPU6050_ReadFIFO(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data) {
@@ -406,10 +415,7 @@ HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c) {
 HAL_StatusTypeDef MPU6050_DisableInterrupt(I2C_HandleTypeDef *hi2c) {
     uint8_t fifo = 0x00;
 
-    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_INT_ENABLE_REG, 1, &fifo, 1, TIMEOUT) != HAL_OK) {
-        return HAL_ERROR;
-    }
-    return HAL_OK;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_INT_ENABLE_REG, 1, &fifo, 1, TIMEOUT);
 }
 
 uint8_t MPU6050_ReadInterruptStatus(I2C_HandleTypeDef *hi2c) {
@@ -420,8 +426,23 @@ uint8_t MPU6050_ReadInterruptStatus(I2C_HandleTypeDef *hi2c) {
     return interrupt;
 }
 
+//DLPF_CFG | Accelerometer             | Gyroscope
+//         | Bandwidth (Hz) Delay (ms) | Bandwidth (Hz) Delay (ms) Fs (kHz)
+//    0    | 260            0          | 256            0.98       8
+//    1    | 184            2.0        | 188            1.9        1
+//    2    | 94             3.0        | 98             2.8        1
+//    3    | 44             4.9        | 42             4.8        1
+//    4    | 21             8.5        | 20             8.3        1
+//    5    | 10             13.8       | 10             13.4       1
+//    6    | 5              19.0       | 5              18.6       1
+//    7    | RESERVED                  | RESERVED                  8
 HAL_StatusTypeDef MPU6050_SetDLPF(I2C_HandleTypeDef *hi2c, uint8_t setting) {
-
+    uint8_t byte;
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_CONFIG_REG, 1, &byte, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    byte = (byte & 0xF8) | setting;
+    return HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_CONFIG_REG, 1, &byte, 1, TIMEOUT);
 }
 
 uint8_t MPU6050_ReadID(I2C_HandleTypeDef *hi2c) {
