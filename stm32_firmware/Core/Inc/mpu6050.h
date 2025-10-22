@@ -15,6 +15,7 @@
 #define MPU6050_PWR_MGMT_1_REG      0x6B
 #define MPU6050_WHO_AM_I_REG        0x75
 #define MPU6050_FIFO_ENABLE_REG     0x23
+#define MPU6050_INT_PIN_CFG_REG     0x37
 #define MPU6050_INT_ENABLE_REG      0x38
 #define MPU6050_INT_STATUS_REG      0x3A
 #define MPU6050_CONFIG_REG          0x1A
@@ -83,7 +84,7 @@ HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_Data_t *data, uint16_t samples);
 HAL_StatusTypeDef MPU6050_EnableFIFO(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_DisableFIFO(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_ReadFIFO(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data);
-HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c, uint8_t int_mask);
+HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_DisableInterrupt(I2C_HandleTypeDef *hi2c);
 uint8_t MPU6050_ReadInterruptStatus(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_SetDLPF(I2C_HandleTypeDef *hi2c, uint8_t setting);

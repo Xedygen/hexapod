@@ -381,16 +381,43 @@ HAL_StatusTypeDef MPU6050_ReadFIFO(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data
     return HAL_OK;
 }
 
-HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c, uint8_t int_mask) {
+//Only checks fifo interrupt.
+HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c) {
+    uint8_t fifo;
+    uint8_t interrupt;
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &fifo, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    fifo &= 0x40;
 
+    if (fifo == 0x40) {
+        if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_INT_ENABLE_REG, 1, &interrupt, 1, TIMEOUT) != HAL_OK) {
+            return HAL_ERROR;
+        }
+        interrupt |= 0x10;
+        if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_INT_ENABLE_REG, 1, &interrupt, 1, TIMEOUT) != HAL_OK) {
+            return HAL_ERROR;
+        }
+    }
+
+    return HAL_OK;
 }
 
 HAL_StatusTypeDef MPU6050_DisableInterrupt(I2C_HandleTypeDef *hi2c) {
+    uint8_t fifo = 0x00;
 
+    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_INT_ENABLE_REG, 1, &fifo, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    return HAL_OK;
 }
 
 uint8_t MPU6050_ReadInterruptStatus(I2C_HandleTypeDef *hi2c) {
-
+    uint8_t interrupt;
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_INT_STATUS_REG, 1, &interrupt, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    return interrupt;
 }
 
 HAL_StatusTypeDef MPU6050_SetDLPF(I2C_HandleTypeDef *hi2c, uint8_t setting) {
