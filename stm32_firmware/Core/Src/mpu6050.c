@@ -317,6 +317,21 @@ HAL_StatusTypeDef MPU6050_EnableFIFO(I2C_HandleTypeDef *hi2c) {
     if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_FIFO_ENABLE_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    val &= ~0x40;
+    val |= 0x04;
+    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    val |= 0x40;
+    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
 
     return HAL_OK;
 }
@@ -326,12 +341,44 @@ HAL_StatusTypeDef MPU6050_DisableFIFO(I2C_HandleTypeDef *hi2c) {
     if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_FIFO_ENABLE_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
-
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    val &= ~0x40;
+    if (HAL_I2C_Mem_Write(hi2c, MPU6050_ADDR, MPU6050_USER_CTRL_REG, 1, &val, 1, TIMEOUT) != HAL_OK) {
+        return HAL_ERROR;
+    }
     return HAL_OK;
 }
 
 HAL_StatusTypeDef MPU6050_ReadFIFO(I2C_HandleTypeDef *hi2c, MPU6050_Data_t *data) {
+    uint8_t count_buffer[2];
+    uint16_t count;
+    uint8_t buffer[14];
+    if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_FIFO_COUNT_REG, 1, count_buffer, 2, TIMEOUT) !=HAL_OK) {
+        return HAL_ERROR;
+    }
+    count = count_buffer[0] << 8 | count_buffer[1];
+    if (count >= 14) {
+        if (HAL_I2C_Mem_Read(hi2c, MPU6050_ADDR, MPU6050_FIFO_DATA_REG, 1, buffer, 14, TIMEOUT) != HAL_OK) {
+            return HAL_ERROR;
+        }
+        data->raw_accel_x = (int16_t)((buffer[0] << 8) | buffer[1]);
+        data->raw_accel_y = (int16_t)((buffer[2] << 8) | buffer[3]);
+        data->raw_accel_z = (int16_t)((buffer[4] << 8) | buffer[5]);
+        data->accel_x = ((float)(data->raw_accel_x)) / accelSens;
+        data->accel_y = ((float)(data->raw_accel_y)) / accelSens;
+        data->accel_z = ((float)(data->raw_accel_z)) / accelSens;
+        data->temp = ((int16_t)((buffer[6] << 8) | buffer[7])) / 340.0f + 36.53f;
+        data->raw_gyro_x = (int16_t)((buffer[8] << 8) | buffer[9]);
+        data->raw_gyro_y = (int16_t)((buffer[10] << 8) | buffer[11]);
+        data->raw_gyro_z = (int16_t)((buffer[12] << 8) | buffer[13]);
+        data->gyro_x = ((float)(data->raw_gyro_x)) / (gyroSens / 10.0f);
+        data->gyro_y = ((float)(data->raw_gyro_y)) / (gyroSens / 10.0f);
+        data->gyro_z = ((float)(data->raw_gyro_z)) / (gyroSens / 10.0f);
+    }
 
+    return HAL_OK;
 }
 
 HAL_StatusTypeDef MPU6050_EnableInterrupt(I2C_HandleTypeDef *hi2c, uint8_t int_mask) {

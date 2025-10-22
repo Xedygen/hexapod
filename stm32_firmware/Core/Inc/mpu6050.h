@@ -26,6 +26,8 @@
 #define MPU6050_GYRO_XOFFS_H_REG    0X13
 #define MPU6050_GYRO_YOFFS_H_REG    0X15
 #define MPU6050_GYRO_ZOFFS_H_REG    0X17
+#define MPU6050_FIFO_COUNT_REG      0x72
+#define MPU6050_FIFO_DATA_REG       0x74
 
 #define TIMEOUT 100
 #define SAMPLES 500 //num of samples for offset calc
