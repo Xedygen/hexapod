@@ -5,6 +5,8 @@
 #include "stm32f4xx_hal.h"
 #include <math.h>
 
+#define MPU6050_CORE_ID 0x70
+
 #define MPU6050_ADDR 0x68 << 1
 
 #define MPU6050_CONFIG_REG          0x1A

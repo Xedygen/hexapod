@@ -13,7 +13,7 @@ HAL_StatusTypeDef MPU6050_Init(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
 
-    if (flag != 0x68) {
+    if (flag != MPU6050_CORE_ID) {
         return HAL_ERROR;
     }
 
@@ -143,7 +143,7 @@ HAL_StatusTypeDef MPU6050_Sleep(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
 
-    if (flag != 0x68) {
+    if (flag != MPU6050_CORE_ID) {
         return HAL_ERROR;
     }
 
@@ -164,7 +164,7 @@ HAL_StatusTypeDef MPU6050_Wake(I2C_HandleTypeDef *hi2c) {
         return HAL_ERROR;
     }
 
-    if (flag != 0x68) {
+    if (flag != MPU6050_CORE_ID) {
         return HAL_ERROR;
     }
 
@@ -186,7 +186,7 @@ HAL_StatusTypeDef MPU6050_SetClockSource(I2C_HandleTypeDef *hi2c, uint8_t source
         return HAL_ERROR;
     }
 
-    if (flag != 0x68) {
+    if (flag != MPU6050_CORE_ID) {
         return HAL_ERROR;
     }
 
