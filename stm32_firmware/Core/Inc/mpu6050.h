@@ -1,6 +1,10 @@
 #ifndef __MPU6050_H__
 #define __MPU6050_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include <math.h>
@@ -94,5 +98,8 @@ uint8_t MPU6050_ReadInterruptStatus(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MPU6050_SetDLPF(I2C_HandleTypeDef *hi2c, uint8_t setting);
 uint8_t MPU6050_ReadID(I2C_HandleTypeDef *hi2c);
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
