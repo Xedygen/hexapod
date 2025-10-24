@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "main.h": "c",
-        "i2c.h": "c"
+        "i2c.h": "c",
+        "spi.h": "c"
     }
 }
