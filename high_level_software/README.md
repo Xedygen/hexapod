@@ -1,0 +1,1 @@
+i wanna implement raspberry pi or jetson nano kinda thing
