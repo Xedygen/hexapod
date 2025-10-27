@@ -10,16 +10,17 @@ extern "C" {
 
 #define PCA9685_MODE1_REG           0x00
 #define PCA9685_MODE2_REG           0x01
-#define PCA9685_SUBADDR1_REG        0x02
-#define PCA9685_SUBADDR2_REG        0x03
-#define PCA9685_SUBADDR3_REG        0x04
-#define PCA9685_ALLCALLADDR_REG     0x05
+#define PCA9685_SUBADDRn_REG(n)    (0x01 + n)
+#define PCA9685_ALLCALL_ADDR_REG    0x05
 #define PCA9685_LED0_ON_L_REG       0x06
 #define PCA9685_ALL_LED_ON_L_REG    0xFA
 #define PCA9685_PRE_SCALE_REG       0xFE
 #define PCA9685_TEST_MODE_REG       0xFF
 #define PCA9685_CHANNEL             4
-#define PCA9685_LEDn_ON_L(n)        (PCA9685_LED0_ON_L + PCA9685_CHANNEL * (n))
+#define PCA9685_LEDn_ON_L(n)        (PCA9685_LED0_ON_L_REG + PCA9685_CHANNEL * (n))
+
+#define TIMEOUT 100
+#define FREQUENCY 50
 
 typedef struct {
     I2C_HandleTypeDef *hi2c;
