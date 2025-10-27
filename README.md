@@ -12,7 +12,12 @@ Mechanical design, electrical design, and all code (except STM HAL library and s
 
 - [TODO List](#todo-list)
 - [Folder Structure](#folder-structure) 
-- [Guide & Explanation](#guide&explanation)
+- [Guide & Explanation](#guide--explanation)
+  - [1. Mechanical Overview](#1-mechanical-overview)
+  - [2. Electronics Overview](#2-electronics-overview)
+  - [3. Software Architecture](#3-software-architecture)
+  - [4. Kinematics & Motion](#4-kinematics--motion)
+  - [5. Future Plans](#5-future-plans)
 - [Acknowledgments](#acknowledgments)  
 - [Disclaimer](#disclaimer)  
 - [Contribution](#contribution)  
@@ -53,14 +58,14 @@ Mechanical design, electrical design, and all code (except STM HAL library and s
 ## Folder Structure
 
 - [Mechanical Design](./mechanical_design/)
-- - [Leg Design](./mechanical_design/leg/)
-- - [Body Design](./mechanical_design/body/)
-- - [Electronics](./mechanical_design/electronics/)
-- - [Components](./mechanical_design/components/)
+  - [Leg Design](./mechanical_design/leg/)
+  - [Body Design](./mechanical_design/body/)
+  - [Electronics](./mechanical_design/electronics/)
+  - [Components](./mechanical_design/components/)
 - [Electronic Design](./electronic_design/)
 - [Embedded Software](./embedded_software/Core/)
-- - [Include](./embedded_software/Core/Inc/)
-- - [Source](./embedded_software/Core/Src/)
+  - [Include](./embedded_software/Core/Inc/)
+  - [Source](./embedded_software/Core/Src/)
 - [High Level Software](./high_level_software/)
 
 ---
