@@ -20,7 +20,7 @@ extern "C" {
 #define PCA9685_LEDn_ON_L(n)        (PCA9685_LED0_ON_L_REG + PCA9685_CHANNEL * (n))
 
 #define TIMEOUT 100
-#define FREQUENCY 50
+#define FREQUENCY 50.0f
 
 typedef struct {
     I2C_HandleTypeDef *hi2c;

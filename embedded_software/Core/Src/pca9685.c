@@ -14,23 +14,26 @@ HAL_StatusTypeDef PCA9685_WriteBurst(PCA9685_Handle_t *pca, uint8_t reg, uint8_t
 
 HAL_StatusTypeDef PCA9685_Init(PCA9685_Handle_t *pca) {
     uint8_t data;
-    float freq = FREQUENCY;
     if (PCA9685_ReadReg(pca, PCA9685_MODE1_REG, &data) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    data = (data & 0x7F) | 0x10;
-
-    if (PCA9685_WriteReg(pca, PCA9685_MODE1_REG, data) != HAL_OK) {
+    if (PCA9685_WriteReg(pca, PCA9685_MODE1_REG, (data | 0x10)) != HAL_OK) {
         return HAL_ERROR;
     }
+    HAL_Delay(1);
 
     if (PCA9685_SetPWMFreq(pca, FREQUENCY) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    data &= ~0x10;
-    return PCA9685_WriteReg(pca, PCA9685_MODE1_REG, data);
+    if (PCA9685_WriteReg(pca, PCA9685_MODE1_REG, ((data & ~0x10) | 0xA0)) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    
+    HAL_Delay(5);
+
+    return HAL_OK;
 }
 
 HAL_StatusTypeDef PCA9685_SetPWMFreq(PCA9685_Handle_t *pca, float freq) {
@@ -94,7 +97,6 @@ HAL_StatusTypeDef PCA9685_SetServoAngle(PCA9685_Handle_t *pca, uint8_t channel, 
     uint16_t count = (uint16_t)((pulse_width / period_ms) * 4096.0f);
 
     return PCA9685_SetPWM(pca, channel, 0, count);
-
 }
 
 uint8_t PCA9685_ReadID(PCA9685_Handle_t *pca) {
