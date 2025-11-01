@@ -2,6 +2,7 @@
     "files.associations": {
         "main.h": "c",
         "i2c.h": "c",
-        "spi.h": "c"
+        "spi.h": "c",
+        "stdint.h": "c"
     }
 }

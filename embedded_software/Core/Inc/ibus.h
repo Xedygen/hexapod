@@ -6,15 +6,12 @@ extern "C" {
 #endif
 
 #include "main.h"
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
-#define IBUS_FRAME_SIZE 32
+#define IBUS_SIZE 32
 #define IBUS_CHANNEL_COUNT 10
-#define IBUS_FRAME_HEADER1 0x20
-#define IBUS_FRAME_HEADER2 0x40
-#define IBUS_DMA_BUFFER_SIZE 64
+#define IBUS_HEADER1 0x20
+#define IBUS_HEADER2 0x40
 
 typedef struct {
     uint16_t left_horizontal, left_vertical;
@@ -25,19 +22,15 @@ typedef struct {
 
 typedef struct {
     UART_HandleTypeDef *huart;
-    uint8_t buffer[IBUS_DMA_BUFFER_SIZE];
-    uint8_t frame[IBUS_FRAME_SIZE];
-    uint8_t frameReady;
-    uint8_t dataValid;
-    uint16_t dmaLastPos;
-    uint8_t isInitialized;
+    uint8_t buffer[IBUS_SIZE];
+    uint8_t ready;
+    uint8_t valid;
     iBus_Data_t *data;
 }IBUS_Handle_t;
 
 HAL_StatusTypeDef IBUS_Init(IBUS_Handle_t *ibus, UART_HandleTypeDef *huart, iBus_Data_t *data);
-HAL_StatusTypeDef IBUS_ParseFrame(IBUS_Handle_t *ibus);
-uint8_t IBUS_IsFrameValid(IBUS_Handle_t *ibus);
-void IBUS_IdleLineCallback(IBUS_Handle_t *ibus);
+HAL_StatusTypeDef IBUS_Parse(IBUS_Handle_t *ibus);
+uint8_t IBUS_IsValid(IBUS_Handle_t *ibus);
 
 #ifdef __cplusplus
 }
