@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define LD2_GPIO_Port GPIOA
 #define MPU6050_SCL_Pin GPIO_PIN_10
 #define MPU6050_SCL_GPIO_Port GPIOB
+#define Detect_SDIO_Pin GPIO_PIN_12
+#define Detect_SDIO_GPIO_Port GPIOB
 #define LED5_Pin GPIO_PIN_8
 #define LED5_GPIO_Port GPIOA
 #define LED4_Pin GPIO_PIN_9

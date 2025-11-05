@@ -10,6 +10,7 @@
                 "../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",
                 "../Drivers/CMSIS/Device/ST/STM32F4xx/Include",
                 "../Drivers/CMSIS/Include",
+                "../Middlewares/Third_Party/FatFs/src",
                 "../Middlewares/Third_Party/FreeRTOS/Source/include",
                 "../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
                 "../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F",
@@ -20,7 +21,11 @@
             "defines": [
                 "USE_HAL_DRIVER",
                 "STM32F446xx",
-                "DEBUG"
+                "DEBUG",
+                "USE_SDIO_INTERFACE",
+                "FATFS_ENABLED",
+                "SD_DETECT_PIN=GPIO_PIN_12",
+                "SD_DETECT_PORT=GPIOB"
             ],
             "compilerPath": "C:/ST/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/arm-none-eabi-gcc.exe",
             "cStandard": "c11",
@@ -31,7 +36,8 @@
                 "path": [
                     "${workspaceFolder}",
                     "../Drivers",
-                    "../Middlewares"
+                    "../Middlewares",
+                    "../FATFS"
                 ]
             }
         }
