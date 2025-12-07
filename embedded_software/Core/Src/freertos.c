@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : freertos.c
-  * Description        : Code for freertos applications
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -25,7 +25,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ibus.h"
+#include "mpu6050.h"
+#include "pca9685.h"
+#include <stdio.h>
+#include "fatfs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,19 +44,28 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+extern I2C_HandleTypeDef hi2c2;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+extern char logbuf[256];
+extern IBUS_Handle_t ibus;
+extern iBus_Data_t data;
+extern MPU6050_Data_t mpu;
+extern PCA9685_Handle_t pca;
 
+extern FATFS fs;
+extern FRESULT fr;
+extern FIL file;
+extern UINT bytes;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for IBusTask */
 osThreadId_t IBusTaskHandle;
@@ -66,20 +79,13 @@ osThreadId_t ServoTaskHandle;
 const osThreadAttr_t ServoTask_attributes = {
   .name = "ServoTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for IMUTask */
 osThreadId_t IMUTaskHandle;
 const osThreadAttr_t IMUTask_attributes = {
   .name = "IMUTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for ControlTask */
-osThreadId_t ControlTaskHandle;
-const osThreadAttr_t ControlTask_attributes = {
-  .name = "ControlTask",
-  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for LEDBlinkTask */
@@ -93,7 +99,7 @@ const osThreadAttr_t LEDBlinkTask_attributes = {
 osThreadId_t SDLogTaskHandle;
 const osThreadAttr_t SDLogTask_attributes = {
   .name = "SDLogTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 
@@ -106,7 +112,6 @@ void StartDefaultTask(void *argument);
 void StartIBusTask(void *argument);
 void StartServoTask(void *argument);
 void StartIMUTask(void *argument);
-void StartControlTask(void *argument);
 void StartLEDBlinkTask(void *argument);
 void StartSDLogTask(void *argument);
 
@@ -151,9 +156,6 @@ void MX_FREERTOS_Init(void) {
   /* creation of IMUTask */
   IMUTaskHandle = osThreadNew(StartIMUTask, NULL, &IMUTask_attributes);
 
-  /* creation of ControlTask */
-  ControlTaskHandle = osThreadNew(StartControlTask, NULL, &ControlTask_attributes);
-
   /* creation of LEDBlinkTask */
   LEDBlinkTaskHandle = osThreadNew(StartLEDBlinkTask, NULL, &LEDBlinkTask_attributes);
 
@@ -172,17 +174,26 @@ void MX_FREERTOS_Init(void) {
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Function implementing the defaultTask thread.
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+__weak void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-  for(;;)
-  {
+  for (;;) {
+    printf("Ch 1: %.2f Ch 2: %.2f Ch 3: %.2f Ch 4: %.2f Ch 5: %.2f Ch 6: %.2f Ch 7: %.2f Ch 8: %.2f Ch 9: %.2f", 
+      ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical, 
+      ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4);
+
+    printf(" | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n",
+      mpu.accel_x, mpu.accel_y, mpu.accel_z, mpu.gyro_x, mpu.gyro_y, mpu.gyro_z, mpu.temp);
+    
+    printf("LED blinked.\r\n");
+
+    printf("SD card logging.\r\n");
     osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
@@ -190,108 +201,119 @@ void StartDefaultTask(void *argument)
 
 /* USER CODE BEGIN Header_StartIBusTask */
 /**
-* @brief Function implementing the IBusTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the IBusTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartIBusTask */
 void StartIBusTask(void *argument)
 {
   /* USER CODE BEGIN StartIBusTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for (;;) {
+    if (ibus.ready) {
+      IBUS_Parsebuffer(&ibus);
+    }
+    osDelay(10);
   }
   /* USER CODE END StartIBusTask */
 }
 
 /* USER CODE BEGIN Header_StartServoTask */
 /**
-* @brief Function implementing the ServoTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the ServoTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartServoTask */
 void StartServoTask(void *argument)
 {
   /* USER CODE BEGIN StartServoTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for (;;) {
+    for (int i = 0; i < 9; i++) {
+      PCA9685_SetServoAngle(&pca, i, 0);
+    }
+
+    osDelay(100);
+    for (int i = 0; i < 9; i++) {
+      PCA9685_SetServoAngle(&pca, i, 180);
+    }
+
+    osDelay(100);
   }
   /* USER CODE END StartServoTask */
 }
 
 /* USER CODE BEGIN Header_StartIMUTask */
 /**
-* @brief Function implementing the IMUTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the IMUTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartIMUTask */
 void StartIMUTask(void *argument)
 {
   /* USER CODE BEGIN StartIMUTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for (;;) {
+    MPU6050_ReadAll(&hi2c2, &mpu);
+    osDelay(50);
   }
   /* USER CODE END StartIMUTask */
 }
 
-/* USER CODE BEGIN Header_StartControlTask */
-/**
-* @brief Function implementing the ControlTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartControlTask */
-void StartControlTask(void *argument)
-{
-  /* USER CODE BEGIN StartControlTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartControlTask */
-}
-
 /* USER CODE BEGIN Header_StartLEDBlinkTask */
 /**
-* @brief Function implementing the LEDBlinkTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the LEDBlinkTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartLEDBlinkTask */
 void StartLEDBlinkTask(void *argument)
 {
   /* USER CODE BEGIN StartLEDBlinkTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for (;;) {
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+    osDelay(1000);
   }
   /* USER CODE END StartLEDBlinkTask */
 }
 
 /* USER CODE BEGIN Header_StartSDLogTask */
 /**
-* @brief Function implementing the SDLogTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the SDLogTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartSDLogTask */
 void StartSDLogTask(void *argument)
 {
   /* USER CODE BEGIN StartSDLogTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+  for (;;) {
+    sprintf(logbuf,
+            "Ch1: %.2f Ch2: %.2f Ch3: %.2f Ch4: %.2f Ch5: %.2f Ch6: %.2f Ch7: %.2f Ch8: %.2f Ch9: %.2f"
+            " | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f"
+            " | LED blinked | SD card logging\r\n",
+
+            ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical,
+            ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4,
+
+            mpu.accel_x, mpu.accel_y, mpu.accel_z,
+            mpu.gyro_x, mpu.gyro_y, mpu.gyro_z,
+            mpu.temp
+    );
+
+    fr = f_write(&file, logbuf, sizeof(logbuf)-1, &bytes);
+    if(fr != FR_OK)
+    {
+        // Error
+        printf("Cant write to sd card.\r\n");
+    }
+
+    osDelay(1000);
   }
   /* USER CODE END StartSDLogTask */
 }

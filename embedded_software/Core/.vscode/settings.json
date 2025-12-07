@@ -3,6 +3,8 @@
         "main.h": "c",
         "i2c.h": "c",
         "spi.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "sdio.h": "c",
+        "pca9685.h": "c"
     }
 }
