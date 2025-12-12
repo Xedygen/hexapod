@@ -3,7 +3,7 @@
 // usage
 
 // IBUS_Handle_t ibus;
-// iBus_Data_t data;
+// IBus_Data_t data;
 
 // void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 // 	ibus.ready = 1;
@@ -22,11 +22,11 @@
 
 // ibus packet is 32 byte size
 // [0x20][0x40][CH1_L][CH1_H][CH2_L][CH2_H]...[CH14_L][CH14_H][Checksum_L][Checksum_H]
-HAL_StatusTypeDef IBUS_Init(IBUS_Handle_t* ibus, UART_HandleTypeDef* huart, iBus_Data_t* data) {
+HAL_StatusTypeDef IBUS_Init(IBUS_Handle_t* ibus, UART_HandleTypeDef* huart, IBus_Data_t* data) {
   memset(ibus, 0, sizeof(*ibus));
   ibus->huart = huart;
   ibus->data = data;
-  memset(ibus->data, 0, sizeof(iBus_Data_t));
+  memset(ibus->data, 0, sizeof(IBus_Data_t));
 
   HAL_UARTEx_ReceiveToIdle_DMA(ibus->huart, ibus->buffer, IBUS_SIZE);
 

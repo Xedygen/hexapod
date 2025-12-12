@@ -22,16 +22,15 @@
 #include "dma.h"
 #include "fatfs.h"
 #include "i2c.h"
-#include "sdio.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include "ibus.h"
-#include "mpu6050.h"
-#include "pca9685.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +40,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 #define DEBUG_UART &huart2
 /* USER CODE END PD */
 
@@ -52,18 +52,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
-char logbuf[256];
-
-IBUS_Handle_t ibus;
-iBus_Data_t data;
-MPU6050_Data_t mpu;
-PCA9685_Handle_t pca;
-
-FATFS fs;
-FRESULT fr;
-FIL file;
-UINT bytes;
+extern osThreadId_t IBusTaskHandle;
+extern IBUS_Handle_t ibus;
+extern IBus_Data_t data;
 
 /* USER CODE END PV */
 
@@ -78,8 +69,10 @@ void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN 0 */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-	ibus.ready = 1;
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart, ibus.buffer, IBUS_SIZE);
+  if(huart->Instance == USART3) {
+    ibus.ready = 1;
+    osThreadFlagsSet(IBusTaskHandle, 0x01);
+  }
 }
 int __io_putchar(int ch)
 {
@@ -96,23 +89,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  pca.hi2c = &hi2c1;
-
-  
-  fr = f_mount(&fs, "", 1);
-  if(fr != FR_OK)
-  {
-      // Handle error
-      printf("SD card is not available!\r\n");
-  }
-
-  fr = f_open(&file, "log.txt", FA_OPEN_ALWAYS | FA_WRITE);
-  if(fr != FR_OK)
-  {
-      printf("Cant create log file.\r\n");
-  }
-
-  f_lseek(&file, f_size(&file));
 
   /* USER CODE END 1 */
 
@@ -140,13 +116,10 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI2_Init();
   MX_USART3_UART_Init();
-  MX_SDIO_SD_Init();
   MX_FATFS_Init();
+  MX_UART4_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  IBUS_Init(&ibus, &huart3, &data);
-  MPU6050_Init(&hi2c2);
-  PCA9685_Init(&pca);
-
   /* USER CODE END 2 */
 
   /* Init scheduler */

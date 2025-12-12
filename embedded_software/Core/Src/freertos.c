@@ -25,11 +25,18 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include "ibus.h"
 #include "mpu6050.h"
 #include "pca9685.h"
 #include <stdio.h>
 #include "fatfs.h"
+#include "dma.h"
+#include "i2c.h"
+#include "spi.h"
+#include "usart.h"
+#include "gpio.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,46 +47,52 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define DEBUG_UART &huart2
+#define INCLUDE_vTaskDelete 1
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-extern I2C_HandleTypeDef hi2c2;
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern char logbuf[256];
-extern IBUS_Handle_t ibus;
-extern iBus_Data_t data;
-extern MPU6050_Data_t mpu;
-extern PCA9685_Handle_t pca;
 
-extern FATFS fs;
-extern FRESULT fr;
-extern FIL file;
-extern UINT bytes;
+char logbuf[256];
+IBUS_Handle_t ibus;
+IBus_Data_t data;
+MPU6050_Data_t mpu;
+PCA9685_Handle_t pca;
+PCA9685_Handle_t pca1;
+
+FATFS fs;
+FRESULT fr;
+FIL file;
+UINT bytes;
+
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for IBusTask */
 osThreadId_t IBusTaskHandle;
 const osThreadAttr_t IBusTask_attributes = {
   .name = "IBusTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for ServoTask */
 osThreadId_t ServoTaskHandle;
 const osThreadAttr_t ServoTask_attributes = {
   .name = "ServoTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for IMUTask */
 osThreadId_t IMUTaskHandle;
@@ -100,7 +113,19 @@ osThreadId_t SDLogTaskHandle;
 const osThreadAttr_t SDLogTask_attributes = {
   .name = "SDLogTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for debugPrintTask */
+osThreadId_t debugPrintTaskHandle;
+const osThreadAttr_t debugPrintTask_attributes = {
+  .name = "debugPrintTask",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for uartMutex */
+osMutexId_t uartMutexHandle;
+const osMutexAttr_t uartMutex_attributes = {
+  .name = "uartMutex"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,6 +139,7 @@ void StartServoTask(void *argument);
 void StartIMUTask(void *argument);
 void StartLEDBlinkTask(void *argument);
 void StartSDLogTask(void *argument);
+void StartDebugPrintTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -126,6 +152,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* creation of uartMutex */
+  uartMutexHandle = osMutexNew(&uartMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -162,6 +191,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of SDLogTask */
   SDLogTaskHandle = osThreadNew(StartSDLogTask, NULL, &SDLogTask_attributes);
 
+  /* creation of debugPrintTask */
+  debugPrintTaskHandle = osThreadNew(StartDebugPrintTask, NULL, &debugPrintTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -179,21 +211,20 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-__weak void StartDefaultTask(void *argument)
+void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for (;;) {
-    printf("Ch 1: %.2f Ch 2: %.2f Ch 3: %.2f Ch 4: %.2f Ch 5: %.2f Ch 6: %.2f Ch 7: %.2f Ch 8: %.2f Ch 9: %.2f", 
-      ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical, 
-      ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4);
-
-    printf(" | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n",
-      mpu.accel_x, mpu.accel_y, mpu.accel_z, mpu.gyro_x, mpu.gyro_y, mpu.gyro_z, mpu.temp);
-    
-    printf("LED blinked.\r\n");
-
-    printf("SD card logging.\r\n");
+    pca.hi2c = &hi2c1;
+    pca.addr = (0x40 << 1);
+    pca1.hi2c = &hi2c1;
+    pca1.addr = ((0x40 + 1) << 1);
+    IBUS_Init(&ibus, &huart3, &data);
+    MPU6050_Init(&hi2c2);
+    PCA9685_Init(&pca);
+    PCA9685_Init(&pca1);
+    vTaskDelete(NULL);
     osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
@@ -211,10 +242,13 @@ void StartIBusTask(void *argument)
   /* USER CODE BEGIN StartIBusTask */
   /* Infinite loop */
   for (;;) {
+    osThreadFlagsWait(0x01, osFlagsWaitAny, osWaitForever);
+    osMutexAcquire(uartMutexHandle, osWaitForever);
     if (ibus.ready) {
-      IBUS_Parsebuffer(&ibus);
+      IBUS_Parse(&ibus);
     }
-    osDelay(10);
+    osMutexRelease(uartMutexHandle);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, ibus.buffer, IBUS_SIZE);
   }
   /* USER CODE END StartIBusTask */
 }
@@ -231,16 +265,16 @@ void StartServoTask(void *argument)
   /* USER CODE BEGIN StartServoTask */
   /* Infinite loop */
   for (;;) {
-    for (int i = 0; i < 9; i++) {
-      PCA9685_SetServoAngle(&pca, i, 0);
+    int degree = (ibus.data->left_vertical - 1000) * 180.0f / 1000.0f;;
+    for (int i = 0; i < 3; i++) {
+      PCA9685_SetServoAngle(&pca, i, degree);
     }
 
-    osDelay(100);
-    for (int i = 0; i < 9; i++) {
-      PCA9685_SetServoAngle(&pca, i, 180);
+    for (int i = 0; i < 4; i++) {
+      PCA9685_SetServoAngle(&pca1, i, degree);
     }
 
-    osDelay(100);
+    osDelay(1000);
   }
   /* USER CODE END StartServoTask */
 }
@@ -258,7 +292,7 @@ void StartIMUTask(void *argument)
   /* Infinite loop */
   for (;;) {
     MPU6050_ReadAll(&hi2c2, &mpu);
-    osDelay(50);
+    osDelay(500);
   }
   /* USER CODE END StartIMUTask */
 }
@@ -291,31 +325,72 @@ void StartLEDBlinkTask(void *argument)
 void StartSDLogTask(void *argument)
 {
   /* USER CODE BEGIN StartSDLogTask */
-  /* Infinite loop */
-  for (;;) {
-    sprintf(logbuf,
-            "Ch1: %.2f Ch2: %.2f Ch3: %.2f Ch4: %.2f Ch5: %.2f Ch6: %.2f Ch7: %.2f Ch8: %.2f Ch9: %.2f"
-            " | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f"
-            " | LED blinked | SD card logging\r\n",
-
-            ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical,
-            ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4,
-
-            mpu.accel_x, mpu.accel_y, mpu.accel_z,
-            mpu.gyro_x, mpu.gyro_y, mpu.gyro_z,
-            mpu.temp
-    );
-
-    fr = f_write(&file, logbuf, sizeof(logbuf)-1, &bytes);
-    if(fr != FR_OK)
-    {
-        // Error
-        printf("Cant write to sd card.\r\n");
+    fr = f_mount(&fs, "", 1);
+    if (fr != FR_OK) {
+        vTaskDelete(NULL);
     }
 
+    fr = f_open(&file, "log.txt", FA_WRITE | FA_OPEN_APPEND);
+    if (fr != FR_OK) {
+        vTaskDelete(NULL);
+    }
+      f_lseek(&file, f_size(&file));
+
+  /* Infinite loop */
+  for (;;) {
+    osMutexAcquire(uartMutexHandle, osWaitForever);
+
+      sprintf(logbuf,
+        "Ch 1: %d Ch 2: %d Ch 3: %d Ch 4: %d Ch 5: %d Ch 6: %d Ch 7: %d Ch 8: %d Ch 9: %d Ch 10: %d | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n", 
+        ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical, 
+        ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4,
+        mpu.accel_x, mpu.accel_y, mpu.accel_z, mpu.gyro_x, mpu.gyro_y, mpu.gyro_z, mpu.temp
+      );
+
+      fr = f_write(&file, logbuf, strlen(logbuf), &bytes);
+
+      f_sync(&file);
+
+      osMutexRelease(uartMutexHandle);
     osDelay(1000);
   }
   /* USER CODE END StartSDLogTask */
+}
+
+/* USER CODE BEGIN Header_StartDebugPrintTask */
+/**
+* @brief Function implementing the debugPrintTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDebugPrintTask */
+void StartDebugPrintTask(void *argument)
+{
+  /* USER CODE BEGIN StartDebugPrintTask */
+  IBus_Data_t ibus_local_data = {1000};
+  MPU6050_Data_t mpu_local_data = {0};
+  /* Infinite loop */
+  for(;;)
+  {
+        osMutexAcquire(uartMutexHandle, osWaitForever);
+        if (ibus.data == NULL) {
+          osMutexRelease(uartMutexHandle);
+          osDelay(100);
+          continue;
+        }
+      else  {
+          ibus_local_data = *ibus.data; 
+      }
+      
+      mpu_local_data = mpu;
+      osMutexRelease(uartMutexHandle);
+    printf("Ch 1: %d Ch 2: %d Ch 3: %d Ch 4: %d Ch 5: %d Ch 6: %d Ch 7: %d Ch 8: %d Ch 9: %d Ch 10: %d | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n", 
+        ibus_local_data.left_horizontal, ibus_local_data.left_vertical, ibus_local_data.right_horizontal, ibus_local_data.right_vertical, 
+        ibus_local_data.pot1, ibus_local_data.pot2, ibus_local_data.switch1, ibus_local_data.switch2, ibus_local_data.switch3, ibus_local_data.switch4,
+        mpu_local_data.accel_x, mpu_local_data.accel_y, mpu_local_data.accel_z, mpu_local_data.gyro_x, mpu_local_data.gyro_y, mpu_local_data.gyro_z, mpu_local_data.temp);
+    osDelay(500);
+  }
+  /* USER CODE END StartDebugPrintTask */
 }
 
 /* Private application code --------------------------------------------------*/

@@ -24,7 +24,6 @@
 /-----------------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_hal.h"
-#include "bsp_driver_sd.h"
 #include "cmsis_os.h" /* _FS_REENTRANT set to 1 and CMSIS API chosen */
 
 /*-----------------------------------------------------------------------------/
@@ -155,7 +154,7 @@
 / Drive/Volume Configurations
 /----------------------------------------------------------------------------*/
 
-#define _VOLUMES    2
+#define _VOLUMES    1
 /* Number of volumes (logical drives) to be used. */
 
 /* USER CODE BEGIN Volumes */
@@ -241,9 +240,9 @@
 
 #define _FS_REENTRANT    1  /* 0:Disable or 1:Enable */
 
-#define _USE_MUTEX       0 /* 0:Disable or 1:Enable */
+#define _USE_MUTEX       1 /* 0:Disable or 1:Enable */
 #define _FS_TIMEOUT      1000 /* Timeout period in unit of time ticks */
-#define _SYNC_t          osSemaphoreId_t
+#define _SYNC_t          osMutexId_t
 /* The option _FS_REENTRANT switches the re-entrancy (thread safe) of the FatFs
 /  module itself. Note that regardless of this option, file access to different
 /  volume is always re-entrant and volume control functions, f_mount(), f_mkfs()

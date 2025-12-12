@@ -101,7 +101,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
     PB8     ------> I2C1_SCL
     PB9     ------> I2C1_SDA
     */
-    GPIO_InitStruct.Pin = PCA9685_SCL_Pin|PCA9685_SDA_Pin;
+    GPIO_InitStruct.Pin = PCA9685_I2C1_SCL_Pin|PCA9685_I2C1_SDA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -126,19 +126,19 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
     PB10     ------> I2C2_SCL
     PC12     ------> I2C2_SDA
     */
-    GPIO_InitStruct.Pin = MPU6050_SCL_Pin;
+    GPIO_InitStruct.Pin = MPU6050_I2C2_SCL_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
-    HAL_GPIO_Init(MPU6050_SCL_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(MPU6050_I2C2_SCL_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = MPU6050_SDA_Pin;
+    GPIO_InitStruct.Pin = MPU6050_I2C2_SDA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
-    HAL_GPIO_Init(MPU6050_SDA_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(MPU6050_I2C2_SDA_GPIO_Port, &GPIO_InitStruct);
 
     /* I2C2 clock enable */
     __HAL_RCC_I2C2_CLK_ENABLE();
@@ -163,9 +163,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
     PB8     ------> I2C1_SCL
     PB9     ------> I2C1_SDA
     */
-    HAL_GPIO_DeInit(PCA9685_SCL_GPIO_Port, PCA9685_SCL_Pin);
+    HAL_GPIO_DeInit(PCA9685_I2C1_SCL_GPIO_Port, PCA9685_I2C1_SCL_Pin);
 
-    HAL_GPIO_DeInit(PCA9685_SDA_GPIO_Port, PCA9685_SDA_Pin);
+    HAL_GPIO_DeInit(PCA9685_I2C1_SDA_GPIO_Port, PCA9685_I2C1_SDA_Pin);
 
   /* USER CODE BEGIN I2C1_MspDeInit 1 */
 
@@ -183,9 +183,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
     PB10     ------> I2C2_SCL
     PC12     ------> I2C2_SDA
     */
-    HAL_GPIO_DeInit(MPU6050_SCL_GPIO_Port, MPU6050_SCL_Pin);
+    HAL_GPIO_DeInit(MPU6050_I2C2_SCL_GPIO_Port, MPU6050_I2C2_SCL_Pin);
 
-    HAL_GPIO_DeInit(MPU6050_SDA_GPIO_Port, MPU6050_SDA_Pin);
+    HAL_GPIO_DeInit(MPU6050_I2C2_SDA_GPIO_Port, MPU6050_I2C2_SDA_Pin);
 
   /* USER CODE BEGIN I2C2_MspDeInit 1 */
 

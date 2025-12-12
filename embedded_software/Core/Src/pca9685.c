@@ -89,8 +89,8 @@ HAL_StatusTypeDef PCA9685_SetServoAngle(PCA9685_Handle_t *pca, uint8_t channel, 
     if (angle < 0.0f) angle = 0.0f;
     if (angle > 180.0f) angle = 180.0f;
 
-    float pulse_min = 1.0f;
-    float pulse_max = 2.0f;
+    float pulse_min = 0.50f;
+    float pulse_max = 2.50f;
     float pulse_width = pulse_min + (angle / 180.0f) * (pulse_max - pulse_min);
 
     float period_ms = 1000.0f / FREQUENCY;
