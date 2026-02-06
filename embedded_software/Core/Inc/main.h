@@ -93,8 +93,8 @@ void Error_Handler(void);
 #define LEG1_TOUCH_SENSOR_GPIO_Port GPIOB
 #define LEG0_TOUCH_SENSOR_Pin GPIO_PIN_6
 #define LEG0_TOUCH_SENSOR_GPIO_Port GPIOC
-#define LED6_Pin GPIO_PIN_9
-#define LED6_GPIO_Port GPIOC
+#define LED6_Error_Led_Pin GPIO_PIN_9
+#define LED6_Error_Led_GPIO_Port GPIOC
 #define LED5_Pin GPIO_PIN_8
 #define LED5_GPIO_Port GPIOA
 #define LED4_Pin GPIO_PIN_9

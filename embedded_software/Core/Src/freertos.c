@@ -19,23 +19,25 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
-#include "task.h"
-#include "main.h"
+
 #include "cmsis_os.h"
+#include "main.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <stdio.h>
+
+#include "dma.h"
+#include "fatfs.h"
+#include "gpio.h"
+#include "i2c.h"
 #include "ibus.h"
 #include "mpu6050.h"
 #include "pca9685.h"
-#include <stdio.h>
-#include "fatfs.h"
-#include "dma.h"
-#include "i2c.h"
 #include "spi.h"
 #include "usart.h"
-#include "gpio.h"
 
 /* USER CODE END Includes */
 
@@ -60,7 +62,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
-char logbuf[256];
+char logbuf[64];
 IBUS_Handle_t ibus;
 IBus_Data_t data;
 MPU6050_Data_t mpu;
@@ -72,82 +74,153 @@ FRESULT fr;
 FIL file;
 UINT bytes;
 
+extern IWDG_HandleTypeDef hiwdg;
+
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "defaultTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for IBusTask */
 osThreadId_t IBusTaskHandle;
 const osThreadAttr_t IBusTask_attributes = {
-  .name = "IBusTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "IBusTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for ServoTask */
 osThreadId_t ServoTaskHandle;
 const osThreadAttr_t ServoTask_attributes = {
-  .name = "ServoTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "ServoTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for IMUTask */
 osThreadId_t IMUTaskHandle;
 const osThreadAttr_t IMUTask_attributes = {
-  .name = "IMUTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "IMUTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for LEDBlinkTask */
 osThreadId_t LEDBlinkTaskHandle;
 const osThreadAttr_t LEDBlinkTask_attributes = {
-  .name = "LEDBlinkTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "LEDBlinkTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for SDLogTask */
 osThreadId_t SDLogTaskHandle;
 const osThreadAttr_t SDLogTask_attributes = {
-  .name = "SDLogTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "SDLogTask",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for debugPrintTask */
 osThreadId_t debugPrintTaskHandle;
 const osThreadAttr_t debugPrintTask_attributes = {
-  .name = "debugPrintTask",
-  .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "debugPrintTask",
+    .stack_size = 1024 * 4,
+    .priority = (osPriority_t)osPriorityBelowNormal,
+};
+/* Definitions for GPSTask */
+osThreadId_t GPSTaskHandle;
+const osThreadAttr_t GPSTask_attributes = {
+    .name = "GPSTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+};
+/* Definitions for Interface */
+osThreadId_t InterfaceHandle;
+const osThreadAttr_t Interface_attributes = {
+    .name = "Interface",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+};
+/* Definitions for TouchSensor */
+osThreadId_t TouchSensorHandle;
+const osThreadAttr_t TouchSensor_attributes = {
+    .name = "TouchSensor",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+};
+/* Definitions for WatchDogTask */
+osThreadId_t WatchDogTaskHandle;
+const osThreadAttr_t WatchDogTask_attributes = {
+    .name = "WatchDogTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for uartMutex */
 osMutexId_t uartMutexHandle;
-const osMutexAttr_t uartMutex_attributes = {
-  .name = "uartMutex"
-};
+const osMutexAttr_t uartMutex_attributes = {.name = "uartMutex"};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
 
-void StartDefaultTask(void *argument);
-void StartIBusTask(void *argument);
-void StartServoTask(void *argument);
-void StartIMUTask(void *argument);
-void StartLEDBlinkTask(void *argument);
-void StartSDLogTask(void *argument);
-void StartDebugPrintTask(void *argument);
+void StartDefaultTask(void* argument);
+void StartIBusTask(void* argument);
+void StartServoTask(void* argument);
+void StartIMUTask(void* argument);
+void StartLEDBlinkTask(void* argument);
+void StartSDLogTask(void* argument);
+void StartDebugPrintTask(void* argument);
+void StartGPSTask(void* argument);
+void StartInterface(void* argument);
+void StartTouchSensor(void* argument);
+void StartWatchDogTask(void* argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+/* Hook prototypes */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char* pcTaskName);
+void vApplicationMallocFailedHook(void);
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char* pcTaskName) {
+  /* Run time stack overflow checking is performed if
+  configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+  called if a stack overflow is detected. */
+
+  taskDISABLE_INTERRUPTS();
+  for (;;) {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+    osDelay(100);
+  }
+}
+/* USER CODE END 4 */
+
+/* USER CODE BEGIN 5 */
+void vApplicationMallocFailedHook(void) {
+  /* vApplicationMallocFailedHook() will only be called if
+  configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h. It is a hook
+  function that will get called if a call to pvPortMalloc() fails.
+  pvPortMalloc() is called internally by the kernel whenever a task, queue,
+  timer or semaphore is created. It is also called by various parts of the
+  demo application. If heap_1.c or heap_2.c are used, then the size of the
+  heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
+  FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
+  to query the size of free heap space that remains (although it does not
+  provide information on how the remaining heap might be fragmented). */
+
+  taskDISABLE_INTERRUPTS();
+  for (;;) {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+    osDelay(100);
+  }
+}
+/* USER CODE END 5 */
+
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
@@ -174,7 +247,8 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle =
+      osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of IBusTask */
   IBusTaskHandle = osThreadNew(StartIBusTask, NULL, &IBusTask_attributes);
@@ -186,13 +260,29 @@ void MX_FREERTOS_Init(void) {
   IMUTaskHandle = osThreadNew(StartIMUTask, NULL, &IMUTask_attributes);
 
   /* creation of LEDBlinkTask */
-  LEDBlinkTaskHandle = osThreadNew(StartLEDBlinkTask, NULL, &LEDBlinkTask_attributes);
+  LEDBlinkTaskHandle =
+      osThreadNew(StartLEDBlinkTask, NULL, &LEDBlinkTask_attributes);
 
   /* creation of SDLogTask */
   SDLogTaskHandle = osThreadNew(StartSDLogTask, NULL, &SDLogTask_attributes);
 
   /* creation of debugPrintTask */
-  debugPrintTaskHandle = osThreadNew(StartDebugPrintTask, NULL, &debugPrintTask_attributes);
+  debugPrintTaskHandle =
+      osThreadNew(StartDebugPrintTask, NULL, &debugPrintTask_attributes);
+
+  /* creation of GPSTask */
+  GPSTaskHandle = osThreadNew(StartGPSTask, NULL, &GPSTask_attributes);
+
+  /* creation of Interface */
+  InterfaceHandle = osThreadNew(StartInterface, NULL, &Interface_attributes);
+
+  /* creation of TouchSensor */
+  TouchSensorHandle =
+      osThreadNew(StartTouchSensor, NULL, &TouchSensor_attributes);
+
+  /* creation of WatchDogTask */
+  WatchDogTaskHandle =
+      osThreadNew(StartWatchDogTask, NULL, &WatchDogTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -201,7 +291,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
-
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -211,8 +300,7 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
+void StartDefaultTask(void* argument) {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for (;;) {
@@ -237,8 +325,7 @@ void StartDefaultTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartIBusTask */
-void StartIBusTask(void *argument)
-{
+void StartIBusTask(void* argument) {
   /* USER CODE BEGIN StartIBusTask */
   /* Infinite loop */
   for (;;) {
@@ -260,19 +347,20 @@ void StartIBusTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartServoTask */
-void StartServoTask(void *argument)
-{
+void StartServoTask(void* argument) {
   /* USER CODE BEGIN StartServoTask */
   /* Infinite loop */
   for (;;) {
-    int degree = (ibus.data->left_vertical - 1000) * 180.0f / 1000.0f;;
-    for (int i = 0; i < 3; i++) {
-      PCA9685_SetServoAngle(&pca, i, degree);
-    }
+    // int degree = (ibus.data->left_vertical - 1000) * 180.0f / 1000.0f;;
+    PCA9685_SetServoAngle(&pca, 0, 30);
+    PCA9685_SetServoAngle(&pca, 1, 30);
+    PCA9685_SetServoAngle(&pca, 2, 30);
 
-    for (int i = 0; i < 4; i++) {
-      PCA9685_SetServoAngle(&pca1, i, degree);
-    }
+    osDelay(1000);
+
+    PCA9685_SetServoAngle(&pca, 0, -30);
+    PCA9685_SetServoAngle(&pca, 1, -30);
+    PCA9685_SetServoAngle(&pca, 2, -30);
 
     osDelay(1000);
   }
@@ -286,8 +374,7 @@ void StartServoTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartIMUTask */
-void StartIMUTask(void *argument)
-{
+void StartIMUTask(void* argument) {
   /* USER CODE BEGIN StartIMUTask */
   /* Infinite loop */
   for (;;) {
@@ -304,8 +391,7 @@ void StartIMUTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartLEDBlinkTask */
-void StartLEDBlinkTask(void *argument)
-{
+void StartLEDBlinkTask(void* argument) {
   /* USER CODE BEGIN StartLEDBlinkTask */
   /* Infinite loop */
   for (;;) {
@@ -322,36 +408,32 @@ void StartLEDBlinkTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartSDLogTask */
-void StartSDLogTask(void *argument)
-{
+void StartSDLogTask(void* argument) {
   /* USER CODE BEGIN StartSDLogTask */
-    fr = f_mount(&fs, "", 1);
-    if (fr != FR_OK) {
-        vTaskDelete(NULL);
-    }
+  fr = f_mount(&fs, "0:", 1);
+  if (fr != FR_OK) {
+    for (;;);
+  }
 
-    fr = f_open(&file, "log.txt", FA_WRITE | FA_OPEN_APPEND);
-    if (fr != FR_OK) {
-        vTaskDelete(NULL);
-    }
-      f_lseek(&file, f_size(&file));
+  fr = f_open(&file, "0:/log.txt", FA_WRITE | FA_OPEN_APPEND | FA_OPEN_ALWAYS);
+  if (fr != FR_OK) {
+    for (;;);
+  }
+
+  // ---- Seek to end ----
+  f_lseek(&file, f_size(&file));
 
   /* Infinite loop */
   for (;;) {
-    osMutexAcquire(uartMutexHandle, osWaitForever);
+    int len = snprintf(logbuf, sizeof(logbuf), "Logging something...\r\n");
 
-      sprintf(logbuf,
-        "Ch 1: %d Ch 2: %d Ch 3: %d Ch 4: %d Ch 5: %d Ch 6: %d Ch 7: %d Ch 8: %d Ch 9: %d Ch 10: %d | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n", 
-        ibus.data->left_horizontal, ibus.data->left_vertical, ibus.data->right_horizontal, ibus.data->right_vertical, 
-        ibus.data->pot1, ibus.data->pot2, ibus.data->switch1, ibus.data->switch2, ibus.data->switch3, ibus.data->switch4,
-        mpu.accel_x, mpu.accel_y, mpu.accel_z, mpu.gyro_x, mpu.gyro_y, mpu.gyro_z, mpu.temp
-      );
+    fr = f_write(&file, logbuf, len, &bytes);
+    if (fr != FR_OK || bytes != len) {
+      for (;;);
+    }
 
-      fr = f_write(&file, logbuf, strlen(logbuf), &bytes);
+    f_sync(&file);
 
-      f_sync(&file);
-
-      osMutexRelease(uartMutexHandle);
     osDelay(1000);
   }
   /* USER CODE END StartSDLogTask */
@@ -359,42 +441,87 @@ void StartSDLogTask(void *argument)
 
 /* USER CODE BEGIN Header_StartDebugPrintTask */
 /**
-* @brief Function implementing the debugPrintTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the debugPrintTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDebugPrintTask */
-void StartDebugPrintTask(void *argument)
-{
+void StartDebugPrintTask(void* argument) {
   /* USER CODE BEGIN StartDebugPrintTask */
-  IBus_Data_t ibus_local_data = {1000};
-  MPU6050_Data_t mpu_local_data = {0};
   /* Infinite loop */
-  for(;;)
-  {
-        osMutexAcquire(uartMutexHandle, osWaitForever);
-        if (ibus.data == NULL) {
-          osMutexRelease(uartMutexHandle);
-          osDelay(100);
-          continue;
-        }
-      else  {
-          ibus_local_data = *ibus.data; 
-      }
-      
-      mpu_local_data = mpu;
-      osMutexRelease(uartMutexHandle);
-    printf("Ch 1: %d Ch 2: %d Ch 3: %d Ch 4: %d Ch 5: %d Ch 6: %d Ch 7: %d Ch 8: %d Ch 9: %d Ch 10: %d | Accel: X%.2f Y%.2f Z%.2f | Gyro: X%.2f Y%.2f Z%.2f | Temp: %.2f\r\n", 
-        ibus_local_data.left_horizontal, ibus_local_data.left_vertical, ibus_local_data.right_horizontal, ibus_local_data.right_vertical, 
-        ibus_local_data.pot1, ibus_local_data.pot2, ibus_local_data.switch1, ibus_local_data.switch2, ibus_local_data.switch3, ibus_local_data.switch4,
-        mpu_local_data.accel_x, mpu_local_data.accel_y, mpu_local_data.accel_z, mpu_local_data.gyro_x, mpu_local_data.gyro_y, mpu_local_data.gyro_z, mpu_local_data.temp);
-    osDelay(500);
+  for (;;) {
+    printf("System is working...");
+    osDelay(1000);
   }
   /* USER CODE END StartDebugPrintTask */
+}
+
+/* USER CODE BEGIN Header_StartGPSTask */
+/**
+ * @brief Function implementing the GPSTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartGPSTask */
+void StartGPSTask(void* argument) {
+  /* USER CODE BEGIN StartGPSTask */
+  /* Infinite loop */
+  for (;;) {
+    osDelay(1);
+  }
+  /* USER CODE END StartGPSTask */
+}
+
+/* USER CODE BEGIN Header_StartInterface */
+/**
+ * @brief Function implementing the Interface thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartInterface */
+void StartInterface(void* argument) {
+  /* USER CODE BEGIN StartInterface */
+  /* Infinite loop */
+  for (;;) {
+    osDelay(1);
+  }
+  /* USER CODE END StartInterface */
+}
+
+/* USER CODE BEGIN Header_StartTouchSensor */
+/**
+ * @brief Function implementing the TouchSensor thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartTouchSensor */
+void StartTouchSensor(void* argument) {
+  /* USER CODE BEGIN StartTouchSensor */
+  /* Infinite loop */
+  for (;;) {
+    osDelay(1);
+  }
+  /* USER CODE END StartTouchSensor */
+}
+
+/* USER CODE BEGIN Header_StartWatchDogTask */
+/**
+ * @brief Function implementing the WatchDogTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartWatchDogTask */
+void StartWatchDogTask(void* argument) {
+  /* USER CODE BEGIN StartWatchDogTask */
+  /* Infinite loop */
+  for (;;) {
+    HAL_IWDG_Refresh(&hiwdg);
+    osDelay(200);
+  }
+  /* USER CODE END StartWatchDogTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-
